@@ -1,4 +1,5 @@
 import sys
+import os
 
 class Aventurier:
     def __init__(self, name, posX, posY, orientation, sequence_moves):
@@ -8,6 +9,7 @@ class Aventurier:
         self.orientation = orientation
         self.remaining_moves = len(sequence_moves)
         self.moves = list(sequence_moves)
+        self.tresors = 0
 
     def update_remaining_moves(self) :
         self.remaining_moves -= 1
@@ -61,12 +63,19 @@ class Aventurier:
     def update_position(self, position):
         self.posX = position[0]
         self.posY = position[1]
+    
+    def update_tresors(self):
+        self.tresors += 1
 
 class Tresor:
-    def __init__(self, posX, posY, nbTresors):
+    def __init__(self, posX, posY, nb_tresors):
         self.posX = posX
         self.posY = posY
-        self.nbTresors = nbTresors
+        self.nb_tresors = nb_tresors
+    
+    def update_nb_tresors(self):
+        if self.nb_tresors > 0:
+            self.nb_tresors -= 1
 
 class Mountain:
     def __init__(self, posX, posY):
@@ -95,12 +104,37 @@ class Map:
             if position[0] == mountain.posX and position[1] == mountain.posY:
                 return True
         return False
+    
+    def update_tresors(self, tresor):
+        for tresor_to_find in self.tresors:
+            if tresor[0] == tresor_to_find.posX and tresor[1] == tresor_to_find.posY:
+                tresor_to_find.update_nb_tresors()
+            if tresor_to_find.nb_tresors == 0:
+                self.tresors.remove(tresor_to_find)
+       
+
     def is_aventurier(self, position):
         for aventurier in self.aventuriers:
             if position[0] == aventurier.posX and position[1] == aventurier.posY:
                 return True
         return False
     
+    def is_tresor(self, position):
+        for tresor in self.tresors:
+            if position[0] == tresor.posX and position[1] == tresor.posY:
+                return True
+        return False
+    
+    def nb_tresors_from_pos(self, position):
+        for tresor in self.tresors:
+            if position[0] == tresor.posX and position[1] == tresor.posY:
+                return tresor.nb_tresors
+            
+    def aventurier_name_from_pos(self, position):
+        for aventurier in self.aventuriers:
+            if position[0] == aventurier.posX and position[1] == aventurier.posY:
+                return aventurier.name
+            
     def is_in_bounds(self, position):
         if position[0] < 0 or position[0] > self.dimensionX - 1:
             return False
@@ -109,27 +143,49 @@ class Map:
         return True
 
     def display_map(self):
+        longest_value_to_print = 0
+        for aventurier in self.aventuriers:
+            if len(aventurier.name) > longest_value_to_print:
+                longest_value_to_print = len(aventurier.name)
+        longest_value_to_print += 5
+
         for j in range(self.dimensionY):
             for i in range(self.dimensionX):
                 if self.is_mountain((i, j)):
-                    print("M   ", end="")
+                    print("M" + " " * longest_value_to_print, end="")
                 elif self.is_aventurier((i,j)):
-                    print("A   ",end="")
+                    print(f"A({self.aventurier_name_from_pos((i,j))})" + " " * (longest_value_to_print - 2 - len(self.aventurier_name_from_pos((i,j)))), end="")
+                elif self.is_tresor((i, j)):
+                    print(f"T({self.nb_tresors_from_pos((i,j))})" + " " * (longest_value_to_print - 3), end="")
                 else:
-                    print(".   ",end="")
+                    print("." + " " * (longest_value_to_print), end="")
             print("\n")  
-        print("-------------")
+        print("-" * self.dimensionY * longest_value_to_print)
+
+    def write_output(self, filename):
+        output_name = filename.replace(".txt", "_output.txt")
+        if os.path.exists(output_name):
+            os.remove(output_name)
+        f = open(output_name, "a")
+        f.write(f"C-{self.dimensionX}-{self.dimensionY}\n")
+        for moutain in self.mountains:
+            f.write(f"M-{moutain.posX}-{moutain.posY}\n")
+        for tresor in self.tresors:
+            f.write(f"T-{tresor.posX}-{tresor.posY}-{tresor.nb_tresors}\n")
+        for aventurier in self.aventuriers:
+            f.write(f"A-{aventurier.name}-{aventurier.posX}-{aventurier.posY}-{aventurier.orientation}-{aventurier.tresors}\n")
+        f.close()
 
 def possible_movement(map, pos):
-    if not map.is_in_bounds(pos) or map.is_mountain(pos):
+    if not map.is_in_bounds(pos) or map.is_mountain(pos) or map.is_aventurier(pos):
         return False
     else :
         return True
 
 def tour_par_tour(map):
     aventurier_peut_toujours_jouer = len(map.aventuriers)
+    #map.display_map()
     while aventurier_peut_toujours_jouer > 0:
-        map.display_map()
         for aventurier in map.aventuriers:
             if aventurier.remaining_moves > 0:
                 move_to_do = aventurier.get_current_move()
@@ -138,10 +194,13 @@ def tour_par_tour(map):
                 else:
                     if possible_movement(map, aventurier.next_move()):
                         aventurier.update_position(aventurier.next_move())
+                        if map.is_tresor((aventurier.posX, aventurier.posY)):
+                            map.update_tresors((aventurier.posX, aventurier.posY))
+                            aventurier.update_tresors()
                 aventurier.update_remaining_moves()
-            else:
-                aventurier_peut_toujours_jouer -= 1
-        
+                if aventurier.remaining_moves == 0:
+                    aventurier_peut_toujours_jouer -= 1
+        #map.display_map()
 
 
 #Faire des tests sur le positionnement de départ des éléments
@@ -190,6 +249,6 @@ def main():
     file_path = get_valid_argument()
     map = create_map(file_path)
     tour_par_tour(map)
-
+    map.write_output(file_path)
 if __name__ == "__main__":
     main()
