@@ -24,47 +24,22 @@ class Aventurier:
 
     #Met à jour l'orientation de l'aventurier en fonction du mouvement d'orientation et de l'orientation cardianale de l'aventurier   
     def update_orientation(self, move):
-        match self.orientation:
-            case "S":
-                if move == "D":
-                    self.orientation = "O"
-                if move == "G":
-                    self.orientation = "E"
-            case "N":
-                if move == "D":
-                    self.orientation = "E"
-                if move == "G":
-                    self.orientation = "O"
-            case "O":
-                if move == "D":
-                    self.orientation = "N"
-                if move == "G":
-                    self.orientation = "S"
-            case "E":
-                if move == "D":
-                    self.orientation = "S"
-                if move == "G":
-                    self.orientation = "N"
-    
+        directions = {"N": {"G": "O", "D": "E"},
+                      "S": {"G": "E", "D": "O"},
+                      "O": {"G": "N", "D": "S"},
+                      "E": {"G": "S", "D": "N"}}
+        self.orientation = directions[self.orientation][move]
+
     #Retourne le mouvement à exécuter de l'aventurier à partir de son nombre de coups restants
     def get_current_move(self):
         return self.moves[len(self.moves) - self.remaining_moves]
     
     #Retourne la position supposée de l'aventurier en fonction de l'orientation cardinale de l'aventurier
     def next_move(self):
-        next_posX = 0
-        next_posY = 0
-        match self.orientation:
-            case "N":
-                next_posY -= 1
-            case "S":
-                next_posY += 1
-            case "O":
-                next_posX -= 1 
-            case "E":
-                next_posX += 1
-        return next_posX + self.posX, next_posY + self.posY
-
+        directions = {"N": (0, -1), "S": (0, 1), "O": (-1, 0), "E": (1, 0)}
+        dx, dy = directions[self.orientation]
+        return self.posX + dx, self.posY + dy
+    
     #Met à jour la position de l'aventurier en fonction du tuple de positions transmis
     def update_position(self, position):
         self.posX = position[0]
