@@ -190,7 +190,7 @@ def tour_par_tour(map):
     aventurier_peut_toujours_jouer = len(map.aventuriers)
 
     #Affiche l'état de la carte au stage 0
-    map.display_map()
+    #map.display_map()
     while aventurier_peut_toujours_jouer > 0:
         #Pour chaque joueur dans la liste des aventuriers
         for aventurier in map.aventuriers:
@@ -219,7 +219,7 @@ def tour_par_tour(map):
                 if aventurier.remaining_moves == 0:
                     #Met à jour le nombre d'aventurier pouvant jouer au prochain tour
                     aventurier_peut_toujours_jouer -= 1
-        map.display_map()
+        #map.display_map()
 
 
 #Faire des tests sur le positionnement de départ des éléments
