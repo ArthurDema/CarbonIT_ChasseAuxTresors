@@ -100,15 +100,18 @@ class Map:
 
     #Ajoute une montagne à la liste de montagnes de la carte
     def add_mountain(self, mountain):
-        self.mountains.append(mountain) 
-
+        if self.is_in_bounds((mountain.posX, mountain.posY)):
+            self.mountains.append(mountain)
+            
     #Ajoute un trésor à la liste de trésors de la carte
     def add_tresor(self, tresor):
-        self.tresors.append(tresor)
+        if self.is_in_bounds((tresor.posX, tresor.posY)):
+            self.tresors.append(tresor)
 
     #Ajoute un aventurier à la liste d'aventuriers de la carte
     def add_aventurier(self, aventurier):
-        self.aventuriers.append(aventurier)
+        if self.is_in_bounds((aventurier.posX, aventurier.posY)):
+            self.aventuriers.append(aventurier)
     
     #Retourne Vrai si le tuple de positions transmis correspond à une montagne - Retourne Faux sinon
     def is_mountain(self, position):
@@ -189,13 +192,13 @@ class Map:
         if os.path.exists(output_name):
             os.remove(output_name)
         f = open(output_name, "a")
-        f.write(f"C-{self.dimensionX}-{self.dimensionY}\n")
+        f.write(f"C - {self.dimensionX} - {self.dimensionY}\n")
         for moutain in self.mountains:
-            f.write(f"M-{moutain.posX}-{moutain.posY}\n")
+            f.write(f"M - {moutain.posX} - {moutain.posY}\n")
         for tresor in self.tresors:
-            f.write(f"T-{tresor.posX}-{tresor.posY}-{tresor.nb_tresors}\n")
+            f.write(f"T - {tresor.posX} - {tresor.posY} - {tresor.nb_tresors}\n")
         for aventurier in self.aventuriers:
-            f.write(f"A-{aventurier.name}-{aventurier.posX}-{aventurier.posY}-{aventurier.orientation}-{aventurier.tresors}\n")
+            f.write(f"A - {aventurier.name} - {aventurier.posX} - {aventurier.posY} - {aventurier.orientation} - {aventurier.tresors}\n")
         f.close()
 
 #Retourne Vrai si la position transmise n'est ni une montagne ni un aventurier et qu'elle est bien dans les limites de la carte - Retourne Faux sinon
@@ -259,6 +262,9 @@ def get_valid_argument():
 def create_map(filename):
     try:
         with open(filename, "r") as file:
+            mountains, tresors, aventuriers = [], [], []
+            map_init = None
+            is_map_dimension = False
             for line in file:
                 #Remplace les caractères spéciaux trouvés dans le fichier
                 result1 = line.replace(" ", "")
@@ -268,29 +274,45 @@ def create_map(filename):
                 #Pour chaque ligne, ajoute l'élément correspondant à la carte de jeu
                 match result2[0]:
                     case "C":
-                        map_game = Map(int(result2[1]), int(result2[2]))            #Problématique dans le cas où la première ligne n'est pas C - A corriger
+                        if (int(result2[1]), int(result2[2])) > (0,0): 
+                            map_init = (int(result2[1]), int(result2[2]))
+                            is_map_dimension = True
+                        else:
+                            raise Exception("La carte ne peut pas être de taille 0")
                     case "M":
-                        mountain = Mountain(int(result2[1]), int(result2[2]))
-                        map_game.add_mountain(mountain)
+                        mountains.append((int(result2[1]), int(result2[2])))
                     case "T":
-                        tresor = Tresor(int(result2[1]), int(result2[2]), int(result2[3]))
-                        map_game.add_tresor(tresor)
+                        tresors.append((int(result2[1]), int(result2[2]), int(result2[3])))
                     case "A":
-                        aventurier = Aventurier(result2[1], int(result2[2]), int(result2[3]), result2[4], result2[5])
-                        map_game.add_aventurier(aventurier)
+                        aventuriers.append((result2[1], int(result2[2]), int(result2[3]), result2[4], result2[5]))
                     case _:
                         pass
+            if is_map_dimension:
+                map_game = Map(map_init[0],map_init[1])
+                for element in mountains :
+                    map_game.add_mountain(Mountain(*element))
+                for element in tresors :
+                    map_game.add_tresor(Tresor(*element))
+                for element in aventuriers :
+                    map_game.add_aventurier(Aventurier(*element))
+
+        return map_game      
     except FileNotFoundError:
-        print(f"Erreur: File '{filename} not found.")
+        print(f"Erreur: Le fichier '{filename} est introuvable.")
     except Exception as e:
         print(f"Une erreur : {str(e)}")
-    return map_game
+        sys.exit(1)
+    
+    
 
 # Main
 def main():
     file_path = get_valid_argument()
+
     map = create_map(file_path)
+
     tour_par_tour(map)
     map.write_output(file_path)
+
 if __name__ == "__main__":
     main()
