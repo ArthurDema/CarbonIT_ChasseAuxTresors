@@ -26,8 +26,8 @@ class Aventurier:
     def update_orientation(self, move):
         directions = {"N": {"G": "O", "D": "E"},
                       "S": {"G": "E", "D": "O"},
-                      "O": {"G": "N", "D": "S"},
-                      "E": {"G": "S", "D": "N"}}
+                      "O": {"G": "S", "D": "N"},
+                      "E": {"G": "N", "D": "S"}}
         self.orientation = directions[self.orientation][move]
 
     #Retourne le mouvement à exécuter de l'aventurier à partir de son nombre de coups restants
@@ -226,68 +226,61 @@ def tour_par_tour(map):
 
 #S'assure que l'argument fourni n'est pas vide
 def get_valid_argument():
-    while True:
-        if len(sys.argv) < 2 or not sys.argv[1].strip():
-            print("Erreur : L'argument ne peut pas être une string vide")
-            sys.exit(1)
-        else:
-            return sys.argv[1]
+    if len(sys.argv) < 2 or not sys.argv[1].strip():
+        print("Erreur : L'argument ne peut pas être une string vide")
+        sys.exit(1)
+    else:
+        return sys.argv[1]
         
 #Constitue la carte de jeu à partir du ficher texte transmis
 def create_map(filename):
     try:
         with open(filename, "r") as file:
             mountains, tresors, aventuriers = [], [], []
-            map_init = None
-            is_map_dimension = False
+            map_dimension = None
             for line in file:
                 #Remplace les caractères spéciaux trouvés dans le fichier
-                result1 = line.replace(" ", "")
-                result1 = result1.replace("\u200b", "")
-                result1 = result1.replace("\n", "")
-                result2 = result1.split("-")
+                line = line.replace(" ", "").replace("\u200b", "").replace("\n", "")
+                element = line.split("-")
                 #Pour chaque ligne, ajoute l'élément correspondant à la carte de jeu
-                match result2[0]:
+                match element[0]:
                     case "C":
-                        if (int(result2[1]), int(result2[2])) > (0,0): 
-                            map_init = (int(result2[1]), int(result2[2]))
-                            is_map_dimension = True
-                        else:
-                            raise Exception("La carte ne peut pas être de taille 0")
+                        map_dimension = (int(element[1]), int(element[2]))
                     case "M":
-                        mountains.append((int(result2[1]), int(result2[2])))
+                        mountains.append((int(element[1]), int(element[2])))
                     case "T":
-                        tresors.append((int(result2[1]), int(result2[2]), int(result2[3])))
+                        tresors.append((int(element[1]), int(element[2]), int(element[3])))
                     case "A":
-                        aventuriers.append((result2[1], int(result2[2]), int(result2[3]), result2[4], result2[5]))
+                        aventuriers.append((element[1], int(element[2]), int(element[3]), element[4], element[5]))
                     case _:
                         pass
-            if is_map_dimension:
-                map_game = Map(map_init[0],map_init[1])
+
+            if map_dimension or (int(element[1]), int(element[2])) != (0,0):
+                map_game = Map(*map_dimension)
                 for element in mountains :
                     map_game.add_mountain(Mountain(*element))
                 for element in tresors :
                     map_game.add_tresor(Tresor(*element))
                 for element in aventuriers :
                     map_game.add_aventurier(Aventurier(*element))
-
+            else :
+                raise Exception("Les dimensions de la carte n'ont pas été précisées ou la carte est de taille 0")
+                    
         return map_game      
     except FileNotFoundError:
         print(f"Erreur: Le fichier '{filename} est introuvable.")
+        sys.exit(1)
     except Exception as e:
         print(f"Une erreur : {str(e)}")
         sys.exit(1)
     
-    
-
 # Main
 def main():
     file_path = get_valid_argument()
-
     map = create_map(file_path)
-
     tour_par_tour(map)
     map.write_output(file_path)
+
 
 if __name__ == "__main__":
     main()
